@@ -1223,8 +1223,7 @@ var BelongsTo = /** @class */ (function (_super) {
         var _this = this;
         var dictionary = this.buildDictionary(relations);
         collection.forEach(function (model) {
-            var fKey = Utils.concatValues(model, _this.foreignKey);
-            var relation = dictionary[fKey];
+            var relation = dictionary[Utils.concatValues(model, _this.foreignKey)];
             model[name] = relation || null;
         });
     };
@@ -1250,7 +1249,7 @@ var HasMany = /** @class */ (function (_super) {
     function HasMany(model, related, foreignKey, localKey) {
         var _this = _super.call(this, model) /* istanbul ignore next */ || this;
         _this.related = _this.model.relation(related);
-        _this.foreignKey = foreignKey;
+        _this.foreignKey = Array.isArray(foreignKey) ? foreignKey : [foreignKey];
         _this.localKey = localKey;
         return _this;
     }
@@ -1267,10 +1266,13 @@ var HasMany = /** @class */ (function (_super) {
         var _this = this;
         key.forEach(function (index) {
             var related = data[_this.related.entity];
-            if (!related || !related[index] || related[index][_this.foreignKey] !== undefined) {
-                return;
-            }
-            related[index][_this.foreignKey] = record[_this.localKey];
+            _this.foreignKey.forEach(function (foreignKey, i) {
+                if (!related || !related[index] || related[index][foreignKey] !== undefined) {
+                    return;
+                }
+                var value = _this.foreignKey.length > 1 ? record[_this.localKey].split('_')[i] : record[_this.localKey];
+                related[index][foreignKey] = (typeof value === 'string') ? Utils.tryParseInt(value) : value;
+            });
         });
     };
     /**
@@ -1291,7 +1293,11 @@ var HasMany = /** @class */ (function (_super) {
      * Set the constraints for an eager load of the relation.
      */
     HasMany.prototype.addEagerConstraints = function (relation, collection) {
-        relation.whereFk(this.foreignKey, this.getKeys(collection, this.localKey));
+        var _this = this;
+        this.foreignKey.forEach(function (foreignKey, i) {
+            var key = Array.isArray(_this.model.primaryKey) ? _this.model.primaryKey[i] : _this.model.primaryKey;
+            relation.whereFk(foreignKey, _this.getKeys(collection, key));
+        });
     };
     /**
      * Match the eagerly loaded results to their parents.
@@ -1311,7 +1317,7 @@ var HasMany = /** @class */ (function (_super) {
     HasMany.prototype.buildDictionary = function (relations) {
         var _this = this;
         return relations.reduce(function (dictionary, relation) {
-            var key = relation[_this.foreignKey];
+            var key = Utils.concatValues(relation, _this.foreignKey);
             if (!dictionary[key]) {
                 dictionary[key] = [];
             }
