@@ -103,9 +103,7 @@ export default class BelongsTo extends Relation {
     const dictionary = this.buildDictionary(relations)
 
     collection.forEach((model) => {
-      const fKey = Utils.concatValues(model, this.foreignKey)
-
-      const relation = dictionary[fKey]
+      const relation = dictionary[Utils.concatValues(model, this.foreignKey)]
 
       model[name] = relation || null
     })

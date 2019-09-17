@@ -6,6 +6,7 @@ import Query from '../../query/Query'
 import Constraint from '../../query/contracts/RelationshipConstraint'
 import DictionaryMany from '../contracts/DictionaryMany'
 import Relation from './Relation'
+import Utils from '../../support/Utils'
 
 export default class HasMany extends Relation {
   /**
@@ -16,7 +17,7 @@ export default class HasMany extends Relation {
   /**
    * The foreign key of the related model.
    */
-  foreignKey: string
+  foreignKey: string[]
 
   /**
    * The local key of the model.
@@ -26,11 +27,11 @@ export default class HasMany extends Relation {
   /**
    * Create a new has many instance.
    */
-  constructor (model: typeof Model, related: typeof Model | string, foreignKey: string, localKey: string) {
+  constructor (model: typeof Model, related: typeof Model | string, foreignKey: string | string[], localKey: string) {
     super(model) /* istanbul ignore next */
 
     this.related = this.model.relation(related)
-    this.foreignKey = foreignKey
+    this.foreignKey = Array.isArray(foreignKey) ? foreignKey : [foreignKey]
     this.localKey = localKey
   }
 
@@ -48,11 +49,15 @@ export default class HasMany extends Relation {
     key.forEach((index: any) => {
       const related = data[this.related.entity]
 
-      if (!related || !related[index] || related[index][this.foreignKey] !== undefined) {
-        return
-      }
+      this.foreignKey.forEach((foreignKey, i) => {
+        if (!related || !related[index] || related[index][foreignKey] !== undefined) {
+          return
+        }
 
-      related[index][this.foreignKey] = record[this.localKey]
+        const value = this.foreignKey.length > 1 ? record[this.localKey].split('_')[i] : record[this.localKey]
+
+        related[index][foreignKey] = (typeof value === 'string') ? Utils.tryParseInt(value) : value
+      })
     })
   }
 
@@ -78,7 +83,11 @@ export default class HasMany extends Relation {
    * Set the constraints for an eager load of the relation.
    */
   private addEagerConstraints (relation: Query, collection: Collection): void {
-    relation.whereFk(this.foreignKey, this.getKeys(collection, this.localKey))
+    this.foreignKey.forEach((foreignKey, i) => {
+      const key = Array.isArray(this.model.primaryKey) ? this.model.primaryKey[i] : this.model.primaryKey
+
+      relation.whereFk(foreignKey, this.getKeys(collection, key))
+    })
   }
 
   /**
@@ -100,7 +109,7 @@ export default class HasMany extends Relation {
    */
   private buildDictionary (relations: Collection): DictionaryMany {
     return relations.reduce<DictionaryMany>((dictionary, relation) => {
-      const key = relation[this.foreignKey]
+      const key = Utils.concatValues(relation, this.foreignKey)
 
       if (!dictionary[key]) {
         dictionary[key] = []

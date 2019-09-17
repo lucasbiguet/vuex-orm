@@ -208,4 +208,65 @@ describe('Features – Relations – Has Many', () => {
 
     expect(store.state.entities).toEqual(expected)
   })
+
+  it('can resolve the has many relation with composite primary key', () => {
+    class User extends Model {
+      static entity = 'users'
+
+      static primaryKey = ['workspace_id', 'id']
+
+      static fields () {
+        return {
+          id: this.attr(null),
+          workspace_id: this.attr(null),
+          posts: this.hasMany(Post, ['workspace_id', 'user_id'])
+        }
+      }
+    }
+
+    class Post extends Model {
+      static entity = 'posts'
+
+      static fields () {
+        return {
+          id: this.attr(null),
+          workspace_id: this.attr(null),
+          user_id: this.attr(null)
+        }
+      }
+    }
+
+    const store = createStore([{ model: User }, { model: Post }])
+
+    store.dispatch('entities/users/create', {
+      data: {
+        id: 1,
+        workspace_id: 1,
+        posts: [
+          {
+            id: 1,
+            workspace_id: 1
+          },
+          {
+            id: 2,
+            workspace_id: 1
+          }
+        ]
+      }
+    })
+
+    const expected = {
+      $id: '1_1',
+      id: 1,
+      workspace_id: 1,
+      posts: [
+        { $id: 1, id: 1, workspace_id: 1, user_id: 1 },
+        { $id: 2, id: 2, workspace_id: 1, user_id: 1 }
+      ]
+    }
+
+    const user = store.getters['entities/users/query']().with('posts').find('1_1')
+
+    expect(user).toEqual(expected)
+  })
 })
