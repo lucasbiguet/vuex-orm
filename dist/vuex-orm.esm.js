@@ -1599,7 +1599,7 @@ var MorphTo = /** @class */ (function (_super) {
      */
     function MorphTo(model, id, type) {
         var _this = _super.call(this, model) /* istanbul ignore next */ || this;
-        _this.id = id;
+        _this.id = Array.isArray(id) ? id : [id];
         _this.type = type;
         return _this;
     }
@@ -1640,7 +1640,7 @@ var MorphTo = /** @class */ (function (_super) {
             return relateds;
         }, {});
         collection.forEach(function (item) {
-            var id = item[_this.id];
+            var id = Utils.concatValues(item, _this.id);
             var type = item[_this.type];
             var related = relateds[type][id];
             item[name] = related || null;
