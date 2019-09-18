@@ -5,6 +5,7 @@ import Model from '../../model/Model'
 import Query from '../../query/Query'
 import Constraint from '../../query/contracts/RelationshipConstraint'
 import Relation from './Relation'
+import Utils from '../../support/Utils'
 
 export type Entity = typeof Model | string
 
@@ -12,7 +13,7 @@ export default class MorphTo extends Relation {
   /**
    * The field name that contains id of the parent model.
    */
-  id: string
+  id: string[]
 
   /**
    * The field name fthat contains type of the parent model.
@@ -25,7 +26,7 @@ export default class MorphTo extends Relation {
   constructor (model: typeof Model, id: string, type: string) {
     super(model) /* istanbul ignore next */
 
-    this.id = id
+    this.id = Array.isArray(id) ? id : [id]
     this.type = type
   }
 
@@ -73,7 +74,7 @@ export default class MorphTo extends Relation {
     }, {} as NormalizedData)
 
     collection.forEach((item) => {
-      const id = item[this.id]
+      const id = Utils.concatValues(item, this.id)
       const type = item[this.type]
       const related = relateds[type][id]
 

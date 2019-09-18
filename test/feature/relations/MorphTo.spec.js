@@ -179,4 +179,106 @@ describe('Features – Relations – Morph To', () => {
 
     expect(comment.commentable).toBe(null)
   })
+
+  it('can retrieve morph to relations based on composite key', async () => {
+    class Post extends Model {
+      static entity = 'posts'
+
+      static primaryKey = ['workspace_id', 'id']
+
+      static fields () {
+        return {
+          id: this.attr(null),
+          workspace_id: this.attr(null)
+        }
+      }
+    }
+
+    class Video extends Model {
+      static entity = 'videos'
+
+      static primaryKey = ['workspace_id', 'id']
+
+      static fields () {
+        return {
+          id: this.attr(null),
+          workspace_id: this.attr(null)
+        }
+      }
+    }
+
+    class Comment extends Model {
+      static entity = 'comments'
+
+      static primaryKey = ['workspace_id', 'id']
+
+      static fields () {
+        return {
+          id: this.attr(null),
+          workspace_id: this.attr(null),
+          body: this.attr(''),
+          commentable_id: this.attr(null),
+          commentable_type: this.attr(null),
+          commentable: this.morphTo(['workspace_id', 'commentable_id'], 'commentable_type')
+        }
+      }
+    }
+
+    const store = createStore([{ model: Post }, { model: Video }, { model: Comment }])
+
+    await store.dispatch('entities/posts/insert', {
+      data: {
+        id: 1,
+        workspace_id: 1
+      }
+    })
+
+    await store.dispatch('entities/videos/insert', {
+      data: {
+        id: 1,
+        workspace_id: 1
+      }
+    })
+
+    await store.dispatch('entities/comments/insert', {
+      data: [
+        {
+          id: 1,
+          workspace_id: 1,
+          body: 'comment1',
+          commentable_type: 'posts',
+          commentable_id: 1
+        },
+        {
+          id: 2,
+          workspace_id: 1,
+          body: 'comment2',
+          commentable_type: 'posts',
+          commentable_id: 1
+        },
+        {
+          id: 3,
+          workspace_id: 1,
+          body: 'comment3',
+          commentable_type: 'videos',
+          commentable_id: 1
+        },
+        {
+          id: 4,
+          workspace_id: 1,
+          body: 'comment4',
+          commentable_type: 'videos',
+          commentable_id: 1
+        }
+      ]
+    })
+
+    const comments = store.getters['entities/comments/query']().with('commentable').get()
+
+    expect(comments.length).toBe(4)
+    expect(comments[0]).toBeInstanceOf(Comment)
+    expect(comments[0].commentable).toBeInstanceOf(Post)
+    expect(comments[2]).toBeInstanceOf(Comment)
+    expect(comments[2].commentable).toBeInstanceOf(Video)
+  })
 })
