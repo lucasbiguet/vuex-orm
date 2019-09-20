@@ -201,4 +201,36 @@ describe('Feature – Models – Update', () => {
 
     expect(store.state.entities).toEqual(expected)
   })
+
+  it('can update a record with composite primary key', async () => {
+    class User extends Model {
+      static entity = 'users'
+
+      static primaryKey = ['workspace_id', 'id']
+
+      static fields () {
+        return {
+          workspace_id: this.attr(null),
+          id: this.attr(null),
+          name: this.attr('Default Doe')
+        }
+      }
+    }
+
+    const store = createStore([{ model: User }])
+
+    await User.insert({
+      data: { workspace_id: 1, id: 1, name: 'John Doe' }
+    })
+
+    await User.query().first().$update({ name: 'Jane Doe' })
+
+    const expected = createState({
+      users: {
+        '1_1': { $id: '1_1', workspace_id: 1, id: 1, name: 'Jane Doe' }
+      }
+    })
+
+    expect(store.state.entities).toEqual(expected)
+  })
 })
