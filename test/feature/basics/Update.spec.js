@@ -551,7 +551,7 @@ describe('Feature – Basics – Update', () => {
       })
     } catch (e) {
       expect(e.message).toBe(`
-        You can't specify \`where\` value as \`string\` or \`number\` when you
+        You can't specify \`where\` value as \`number\` when you
         have a composite key defined in your model. Please include composite
         keys to the \`data\` fields.
       `)

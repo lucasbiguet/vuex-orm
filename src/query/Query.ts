@@ -874,12 +874,12 @@ export default class Query<T extends Model = Model> {
       return this.persist(data, 'update', options) as Data.Collections<T>
     }
 
-    // Now since the condition is either String or Number, let's check if the
-    // model's primary key is not a composite key. If yes, we can't set the
-    // condition as ID value for the record so throw an error and abort.
-    if (Array.isArray(this.model.primaryKey)) {
+    // Now if the primaryKey is a composite key and
+    // condition is a Number, we can't set the condition as
+    // ID value for the record so throw an error and abort.
+    if (Array.isArray(this.model.primaryKey) && typeof condition === 'number') {
       throw new Error(`
-        You can't specify \`where\` value as \`string\` or \`number\` when you
+        You can't specify \`where\` value as \`number\` when you
         have a composite key defined in your model. Please include composite
         keys to the \`data\` fields.
       `)
